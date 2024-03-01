@@ -1,33 +1,37 @@
+# File: .github/workflows/workflow.yml
+
 name: deploy_frontend
+on: 
+  push:
+    branches: [ main ]
+    paths:
+    - 'frontend/**'
 
-on:
-    push:
-        branches: [ main ]
-        paths:
-        - 'frontend/**'
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
+jobs: 
+  build-and-deploy:
+    runs-on: self-hosted
     steps:
-    - uses: actions/checkout@v3
-    - uses: azure/login@v1
-      with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          auth-type: IDENTITY          
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
 
-    - name: Upload to blob storage
-      uses: azure/CLI@v1
-      with:
-        inlineScript: |
-            az storage blob upload-batch --account-name <funcresumehscottstorage> --auth-mode key -d '$web' -s frontend/
-    - name: Purge CDN endpoint
-      uses: azure/CLI@v1
-      with:
-        inlineScript: |
-           az cdn endpoint purge --content-paths  "/*" --profile-name "funcresumehscottstorage" --name "funcresumehscottstorage" --resource-group "db-resourceGroup"
+      # Azure CLI Action only supports linux self-hosted runners for now. 
+      # If you want to execute the Azure CLI script on a windows self-hosted runner, you can execute it directly in `run`.  
+      - name: Azure CLI script
+        uses: azure/CLI@v1
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az account show
 
-  # Azure logout
-    - name: logout
-      run: |
-            az logout
-      if: always()
+      - name: Azure PowerShell script
+        uses: azure/powershell@v1
+        with:
+          azPSVersion: "latest"
+          inlineScript: |
+            Get-AzContext
+            Get-AzResourceGroup
