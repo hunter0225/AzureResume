@@ -1,4 +1,35 @@
-push:
-    branches: [ main ]
-    paths:
-    - 'frontend/**'
+# File: .github/workflows/workflow.yml
+
+name: deploy_frontend
+
+on:
+    push:
+        branches: [ main ]
+        paths:
+          - 'backend/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: azure/login@v1
+      with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Upload to blob storage
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+            az storage blob upload-batch --account-name funcresumehscottstorage --auth-mode key -d '$web' -s backend/ --overwrite
+    - name: Purge CDN endpoint
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+           az cdn endpoint purge --content-paths  "/*" --profile-name "funcresumehscottstorage" --name "funcresumehscottstorage" --resource-group "db-resourceGroup"
+
+  # Azure logout
+    - name: logout
+      run: |
+            az logout
+      if: always()
