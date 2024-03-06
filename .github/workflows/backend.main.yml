@@ -1,6 +1,6 @@
 # File: .github/workflows/workflow.yml
 
-name: deploy_frontend
+name: deploy_backend
 
 on:
     push:
